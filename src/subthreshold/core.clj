@@ -10,31 +10,50 @@
   ; setup function returns initial state. It contains
   ; circle color and position.
   {:color 0
-   :angle 0})
+   :angle 0
+   :diameter 25
+   :change-rate 0.1})
 
 (defn update-state [state]
   ; Update sketch state by changing circle color and position.
+  (println state)
   {:color (mod (+ (:color state) 0.7) 255)
-   :angle (+ (:angle state) 0.1)})
+   :angle (+ (:angle state) 0.1)
+   :diameter (+ (:diameter state) (:change-rate state))
+   :change-rate (:change-rate state)})
+
+
+(defn draw-circle [diameter]
+  (let [x 0 y 0 width diameter height diameter]
+    (q/arc x y    ; x, y center position
+           width height    ; width, height
+           (* -0.25 q/PI) (* 1.25 q/PI))
+    (q/arc x y (* 0.5 width) (* 0.5 height) 0 (* 2 q/PI)) ; circle
+    (let [distance-x (* width (Math/sin (* 0.25 q/PI)))
+          distance-y (* (* -1 height) (Math/cos (* 0.25 q/PI)))]
+      (q/arc (+ x distance-x) (+ y distance-y) width height (* 0.75 q/PI) (* 2.25 q/PI))
+      (q/arc (+ x distance-x) (+ y distance-y) (* 0.5 width) (* 0.5 height) 0 (* 2 q/PI)))))
 
 (defn draw-state [state]
-  ; Clear the sketch by filling it with light-grey color.
-  (q/background 240)
-  ; Set circle color.
-  (q/fill (:color state) 255 255)
-  ; Calculate x and y coordinates of the circle.
-  (let [angle (:angle state)
-        x (* 150 (q/cos angle))
-        y (* 150 (q/sin angle))]
-    ; Move origin point to the center of the sketch.
-    (q/with-translation [(/ (q/width) 2)
-                         (/ (q/height) 2)]
-      ; Draw the circle.
-      (q/ellipse x y 100 100))))
+  ; Clear the sketch once at the beginning
+  (q/background 255)
+  (q/camera 0 0 300 0 0 0 0 1 0)
+  (q/no-fill)
+  (q/color (:color state) 255 255)
+  (q/translate (* -1 (:change-rate state)) 0)
+  (let [diameter (:diameter state)]
+    (dotimes [_ (/ (q/height) diameter)]
+      (q/push-matrix)
+      (draw-circle diameter)
+      (dotimes [_ (/ (q/width) diameter)]
+        (q/translate (* 2 diameter (Math/sin (* 0.25 q/PI))) 0)
+        (draw-circle diameter))
+      (q/pop-matrix)
+      (q/translate 0 (+ diameter (* 0.75 diameter))))))
 
 
 (q/defsketch subthreshold
-  :title "You spin my circle right round"
+  :title "Subthreshold visuals"
   :size [500 500]
   ; setup function called only once, during sketch initialization.
   :setup setup
